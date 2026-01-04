@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; background: #fdf2e9; padding: 10px; margin: 0; }
+    .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 12px; border-top: 5px solid #27ae60; position: relative; }
+    #loginArea { text-align: center; max-width: 350px; margin: 100px auto; }
+    .table-wrapper { overflow-x: auto; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #27ae60; color: white; padding: 10px; text-align: left; }
+    td { padding: 8px; border-bottom: 1px solid #eee; }
+    #settingsPanel { background: #f4f4f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+    input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; box-sizing: border-box; }
+    .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; margin-right: 5px; }
+    .btn-green { background: #27ae60; } .btn-blue { background: #2980b9; } .btn-red { background: #e74c3c; position: absolute; top: 10px; right: 10px; }
+  </style>
+</head>
+<body>
+  <div id="loginArea" class="container">
+    <h2>Admin Login</h2>
+    <input type="password" id="passInput" placeholder="Password">
+    <button class="btn btn-green" style="width:100%" onclick="checkPass()">Login</button>
+  </div>
+  <div id="dashArea" class="container" style="display:none;">
+    <button class="btn btn-red" onclick="logout()">Logout</button>
+    <h2>Admin Dashboard</h2>
+    <button class="btn btn-blue" onclick="toggleSettings()">⚙️ Settings & Gap</button>
+    <button class="btn btn-green" onclick="loadData()">🔄 Refresh Data</button>
+    <div id="settingsPanel">
+      <label>Date</label><input type="text" id="adminDate">
+      <label>Time</label><input type="text" id="adminTime">
+      <label>Gap (Mins)</label><input type="number" id="adminInterval">
+      <button class="btn btn-green" onclick="updateAdmin()">Save</button>
+    </div>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Token</th><th>Name</th><th>Mobile</th><th>Persons</th><th>Time</th><th>UTR</th></tr></thead>
+        <tbody id="dataTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    if(sessionStorage.getItem("auth") === "true") showDash();
+    function checkPass() { if(document.getElementById('passInput').value === "Varada@123") { sessionStorage.setItem("auth", "true"); showDash(); } else alert("Wrong!"); }
+    function showDash() { document.getElementById('loginArea').style.display = 'none'; document.getElementById('dashArea').style.display = 'block'; loadData(); loadSettings(); }
+    function toggleSettings() { const p = document.getElementById('settingsPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
+    function loadSettings() { google.script.run.withSuccessHandler(d => { document.getElementById('adminDate').value = d.date; document.getElementById('adminTime').value = d.time; document.getElementById('adminInterval').value = d.interval; }).getSettings(); }
+    function loadData() { google.script.run.withSuccessHandler(data => { let html = ""; data.forEach(r => { html += `<tr><td><b>${r[5]}</b></td><td>${r[1]}</td><td>${r[2]}</td><td>${r[7]}</td><td>${r[6]}</td><td>${r[8]}</td></tr>`; }); document.getElementById('dataTableBody').innerHTML = html; }).getPaymentData(); }
+    function updateAdmin() { const d = { date: document.getElementById('adminDate').value, time: document.getElementById('adminTime').value, interval: document.getElementById('adminInterval').value }; google.script.run.withSuccessHandler(() => { alert("Saved!"); toggleSettings(); }).saveSettings(d); }
+    function logout() { sessionStorage.removeItem("auth"); location.reload(); }
+  </script>
+</body>
+</html>

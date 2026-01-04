@@ -16,15 +16,24 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
 </head>
 <body>
 
+<!-- Loading -->
+<div id="loading" class="card" style="padding:40px;text-align:center;">
+  Checking slots…
+</div>
 
-<div id="loading" class="card" style="padding:40px;text-align:center;">Checking slots…</div>
-<div id="closed" class="card hidden" style="padding:40px;text-align:center;color:red;">ALL SLOTS FULL</div>
+<!-- Closed -->
+<div id="closed" class="card hidden" style="padding:40px;text-align:center;color:red;">
+  ALL SLOTS FULL
+</div>
 
-
+<!-- Registration Form -->
 <div id="form" class="card hidden">
-  <div style="background:#D35400;color:white;padding:15px;text-align:center;">Project Arun</div>
+  <div style="background:#D35400;color:white;padding:15px;text-align:center;">
+    Project Arun
+  </div>
   <div style="padding:20px;">
     <label>Name</label><input id="name">
+
     <label>Persons</label>
     <div class="p-box">
       <button class="p-btn" onclick="setP('1',this)">1</button>
@@ -35,9 +44,7 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
       <button class="p-btn" onclick="setP('5+',this)">5+</button>
     </div>
 
-
     <input type="checkbox" id="nonKA" onchange="toggleLoc()"> Outside Karnataka?
-
 
     <div id="ka">
       <select id="dist">
@@ -46,7 +53,6 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
       </select>
     </div>
 
-
     <div id="nka" class="hidden">
       <select id="state">
         <option>Tamil Nadu</option>
@@ -54,10 +60,8 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
       </select>
     </div>
 
-
     <label>Place</label><input id="place">
     <label>Mobile</label><input id="mobile" maxlength="10">
-
 
     <a class="btn" style="background:#27AE60;text-decoration:none;text-align:center;"
        href="upi://pay?pa=ajvinay991@mvhdfc&pn=Arun&am=0.01"
@@ -65,7 +69,7 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
   </div>
 </div>
 
-
+<!-- Payment Check -->
 <div id="payCheck" class="card hidden" style="padding:30px;text-align:center;position:relative;">
   <span onclick="closePayCheck()" style="position:absolute;top:10px;right:15px;cursor:pointer;font-weight:bold;">✖</span>
   <h3>Payment Check</h3>
@@ -74,114 +78,104 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
   <button class="btn" style="background:#E74C3C;" onclick="confirmNo()">No, Try Again</button>
 </div>
 
-
-<div id="tokenScr" class="card hidden" style="padding:30px;text-align:center;">
-  <h3 style="color:green;">Success</h3>
-  <div id="tDisp" style="border:2px dashed #D35400;padding:15px;font-weight:bold;"></div>
-</div>
-
-
+<!-- Upload Section -->
 <div id="upScr" class="card hidden" style="padding:20px;text-align:center;">
+  <h3>Enter Transaction ID</h3>
+  <input id="txnId" placeholder="Transaction ID">
+
+  <button class="btn" style="background:#27AE60;margin-bottom:10px;" onclick="saveTxn()">
+    Save Transaction ID
+  </button>
+
+  <hr style="margin:15px 0">
+
   <h3>Upload Screenshot</h3>
   <input type="file" id="file" accept="image/*">
   <button class="btn" style="background:#27AE60;" onclick="upload()">Submit Proof</button>
 </div>
 
+<!-- Token Screen -->
+<div id="tokenScr" class="card hidden" style="padding:30px;text-align:center;">
+  <h3 style="color:green;">Your Token</h3>
+  <div id="tDisp" style="border:2px dashed #D35400;padding:15px;font-weight:bold;"></div>
+</div>
 
 <script>
-// 🔹 Safe global element references
 const loading = document.getElementById("loading");
 const closed  = document.getElementById("closed");
 const form    = document.getElementById("form");
 const payCheck = document.getElementById("payCheck");
-const tokenScr = document.getElementById("tokenScr");
 const upScr    = document.getElementById("upScr");
-const name     = document.getElementById("name");
-const mobile   = document.getElementById("mobile");
-const place    = document.getElementById("place");
-const dist     = document.getElementById("dist");
-const state    = document.getElementById("state");
-const nonKA    = document.getElementById("nonKA");
-const tDisp    = document.getElementById("tDisp");
-const file     = document.getElementById("file");
+const tokenScr = document.getElementById("tokenScr");
 
+const name = document.getElementById("name");
+const mobile = document.getElementById("mobile");
+const place = document.getElementById("place");
+const dist = document.getElementById("dist");
+const state = document.getElementById("state");
+const nonKA = document.getElementById("nonKA");
+const file = document.getElementById("file");
+const txnId = document.getElementById("txnId");
+const tDisp = document.getElementById("tDisp");
 
+let pCount = "", paymentPending = false;
 const UPI_URL = "upi://pay?pa=ajvinay991@mvhdfc&pn=Arun&am=0.01";
-let pCount="", paymentPending=false;
 
-
-// 🔹 On load: check slot status
+/* On load */
 window.onload = () => {
   google.script.run.withSuccessHandler(s => {
-    loading.classList.add('hidden');
-    s === "FULL" ? closed.classList.remove('hidden') : form.classList.remove('hidden');
+    loading.classList.add("hidden");
+    s === "FULL" ? closed.classList.remove("hidden") : form.classList.remove("hidden");
   }).getLimitStatus();
 };
 
-
-// 🔹 Person selection
 function setP(v,b){
   pCount=v;
   document.querySelectorAll('.p-btn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');
 }
 
-
-// 🔹 Toggle location dropdown
 function toggleLoc(){
   nonKA.checked
     ? (ka.classList.add('hidden'), nka.classList.remove('hidden'))
     : (ka.classList.remove('hidden'), nka.classList.add('hidden'));
 }
 
-
-// 🔹 Validation
 function validate(){
-  if(!name.value || !pCount || !place.value) { alert("All fields required"); return false; }
-  if(!/^[6-9]\d{9}$/.test(mobile.value)) { alert("Invalid mobile"); return false; }
+  if(!name.value || !pCount || !place.value) return alert("All fields required"), false;
+  if(!/^[6-9]\d{9}$/.test(mobile.value)) return alert("Invalid mobile"), false;
   return true;
 }
 
-
-// 🔹 Payment initiation
 function pay(){
   if(!validate()) return;
-  form.classList.add('hidden');
-  payCheck.classList.remove('hidden');
+  form.classList.add("hidden");
+  payCheck.classList.remove("hidden");
   paymentPending = true;
 }
 
-
-// 🔹 Payment check handlers
 function closePayCheck(){
-  if(confirm("Exit payment verification?")){
-    payCheck.classList.add('hidden');
-    form.classList.remove('hidden');
-    paymentPending=false;
-  }
+  payCheck.classList.add("hidden");
+  form.classList.remove("hidden");
+  paymentPending=false;
 }
 
-
 function confirmNo(){
-  payCheck.classList.add('hidden');
   window.location.href = UPI_URL;
 }
 
-
 function confirmYes(){
-  payCheck.classList.add('hidden');
+  payCheck.classList.add("hidden");
   paymentPending=false;
   submit();
 }
 
+window.addEventListener("focus",()=>{ if(paymentPending) payCheck.classList.remove("hidden"); });
 
-// 🔹 Detect app focus (mobile payment return)
-window.addEventListener('focus',()=>{ if(paymentPending) payCheck.classList.remove('hidden'); });
-
-
-// 🔹 Submit registration
 function submit(){
-  const d={
+  google.script.run.withSuccessHandler(()=>{
+    upScr.classList.remove("hidden");
+  }).verifyAndSubmit({
     name: name.value.trim(),
     mobile: mobile.value.trim(),
     persons: pCount,
@@ -189,41 +183,40 @@ function submit(){
     district: dist.value,
     state: state.value,
     place: place.value.trim()
-  };
-
-
-  google.script.run.withSuccessHandler(r=>{
-    if(r.status==="duplicate"){
-      alert("Mobile already registered");
-      form.classList.remove('hidden');
-      return;
-    }
-    tokenScr.classList.remove('hidden');
-    tDisp.innerText = r.token;
-    setTimeout(()=>{ tokenScr.classList.add('hidden'); upScr.classList.remove('hidden'); }, 2000);
-  }).verifyAndSubmit(d);
+  });
 }
 
+function saveTxn(){
+  if(!txnId.value) return alert("Transaction ID required");
+  google.script.run.saveTxnId(mobile.value, txnId.value.trim());
+}
 
-// 🔹 Upload screenshot
 function upload(){
   const f = file.files[0];
-  if(!f){ alert("Select a file!"); return; }
+  if(!f) return alert("Select screenshot");
+
   const r = new FileReader();
   r.onload = e => {
-    google.script.run.withSuccessHandler(()=>location.reload())
-      .uploadScreenshot({
-        base64: e.target.result.split(',')[1],
-        type: f.type,
-        name: "Proof_" + mobile.value
-      });
+    google.script.run.withSuccessHandler(res=>{
+      if(res.status==="txn_missing"){
+        alert("Enter Transaction ID first");
+        return;
+      }
+      if(res.status==="success"){
+        tDisp.innerText = res.token;
+        upScr.classList.add("hidden");
+        tokenScr.classList.remove("hidden");
+      }
+    }).uploadScreenshot({
+      base64: e.target.result.split(',')[1],
+      type: f.type,
+      name: "Proof_"+mobile.value,
+      mobile: mobile.value
+    });
   };
   r.readAsDataURL(f);
 }
 </script>
 
-
 </body>
 </html>
-
-

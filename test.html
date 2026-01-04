@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <style>
+    :root { --primary: #e67e22; --bg: #fffbf5; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
+    .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; margin: auto; border-top: 8px solid var(--primary); }
+    input, select { width: 100%; padding: 12px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 16px; box-sizing: border-box; margin-bottom: 10px; outline: none; }
+    .btn { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; color: white; background: var(--primary); margin-top: 10px; }
+    .overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; box-sizing: border-box; }
+    .hidden { display: none; }
+    .preview-txt { font-size: 60px; color: var(--primary); font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="card" id="step1">
+    <h2>Project Arun</h2>
+    <input type="text" id="name" placeholder="Full Name">
+    <select id="persons"><option value="3">3 Persons</option><option value="2">2 Persons</option><option value="1">1 Person</option></select>
+    <input type="text" id="dist" placeholder="District">
+    <input type="text" id="place" placeholder="Place">
+    <input type="tel" id="mobile" maxlength="10" placeholder="Mobile Number" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    <button class="btn" onclick="validateStep1()">Register</button>
+  </div>
+
+  <div id="mInstruction" class="overlay"><div class="card">
+    <h3>Payment Instructions</h3>
+    <p>1. Complete payment.<br>2. Copy 12-digit UTR.<br>3. Take Screenshot.</p>
+    <button class="btn" onclick="launchUPI()">Proceed to Pay</button>
+  </div></div>
+
+  <div id="mCheck" class="overlay"><div class="card">
+    <h3>Was payment successful?</h3>
+    <button class="btn" style="background:#27ae60" onclick="toStep4()">Yes, Proceed</button>
+    <button class="btn" style="background:#e74c3c" onclick="location.reload()">No</button>
+  </div></div>
+
+  <div class="card hidden" id="step4">
+    <h3>Enter 12-digit UTR</h3>
+    <input type="tel" id="utr" maxlength="12" placeholder="UTR Number">
+    <button class="btn" onclick="previewToken()">Submit UTR</button>
+    <div id="previewArea" class="hidden"><p>Token ID:</p><div class="preview-txt" id="tokenID"></div></div>
+  </div>
+
+  <div class="card hidden" id="step5">
+    <h3>Upload Screenshot</h3>
+    <input type="file" id="ssFile" accept="image/*">
+    <button class="btn" id="finalBtn" onclick="finalizeAll()">Complete & Save</button>
+  </div>
+
+  <div id="captureCard" style="display:none; padding:40px; background:white; position:fixed; top:-5000px; width:350px; text-align:center; border:10px solid var(--primary);">
+    <h1 id="capTok" style="font-size:70px; color:var(--primary);"></h1>
+    <h2 id="capName" style="font-size:25px;"></h2>
+  </div>
+
+  <script>
+    let uData = {};
+    function validateStep1() {
+      const mob = document.getElementById('mobile').value;
+      if(mob.length !== 10) return alert("Enter 10 digit mobile");
+      google.script.run.withSuccessHandler(isDup => {
+        if(isDup) alert("Already token generated for this mobile number.");
+        else document.getElementById('mInstruction').style.display = 'flex';
+      }).checkDuplicate(mob);
+    }
+
+    function launchUPI() {
+      const note = encodeURIComponent("ಕಂಚಿ ವರದರಾಜ ಸ್ವಾಮಿ");
+      window.location.href = `upi://pay?pa=ajvinay991@mvhdfc&pn=ProjectArun&am=0.01&cu=INR&tn=${note}`;
+      setTimeout(() => { 
+        document.getElementById('mInstruction').style.display = 'none'; 
+        document.getElementById('mCheck').style.display = 'flex'; 
+      }, 3000);
+    }
+
+    function toStep4() {
+      document.getElementById('mCheck').style.display = 'none';
+      document.getElementById('step1').classList.add('hidden');
+      document.getElementById('step4').classList.remove('hidden');
+    }
+
+    function previewToken() {
+      const utr = document.getElementById('utr').value;
+      if(utr.length !== 12) return alert("Enter 12 digit UTR");
+      google.script.run.withSuccessHandler(token => {
+        uData.token = token;
+        document.getElementById('tokenID').innerText = token;
+        document.getElementById('previewArea').classList.remove('hidden');
+        setTimeout(() => {
+          document.getElementById('step4').classList.add('hidden');
+          document.getElementById('step5').classList.remove('hidden');
+        }, 2000);
+      }).getNextTokenID();
+    }
+
+    function finalizeAll() {
+      const file = document.getElementById('ssFile').files[0];
+      if(!file) return alert("Upload screenshot");
+      const btn = document.getElementById('finalBtn');
+      btn.disabled = true; btn.innerText = "Saving...";
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        uData.name = document.getElementById('name').value;
+        uData.mobile = document.getElementById('mobile').value;
+        uData.persons = document.getElementById('persons').value;
+        uData.district = document.getElementById('dist').value;
+        uData.place = document.getElementById('place').value;
+        uData.fileData = e.target.result.split(',')[1];
+        uData.fileType = file.type;
+        google.script.run.withSuccessHandler(() => {
+          downloadImage();
+          alert("Saved & Downloaded!");
+        }).finalizeRegistration(uData);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function downloadImage() {
+      const target = document.getElementById('captureCard');
+      document.getElementById('capTok').innerText = uData.token;
+      document.getElementById('capName').innerText = uData.name;
+      target.style.display = 'block';
+      html2canvas(target).then(canvas => {
+        const link = document.createElement('a');
+        link.download = uData.token + '.png';
+        link.href = canvas.toDataURL();
+        link.click();
+        target.style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>
