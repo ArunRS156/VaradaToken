@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body { font-family: Arial,sans-serif; background:#F4F6F7; margin:0; padding:0; }
+.header { background:#D35400; color:white; padding:15px; text-align:center; font-size:20px; }
+.card { background:white; margin:15px; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.1); }
+input, button { width:100%; padding:10px; margin-top:8px; border-radius:6px; border:1px solid #ccc; }
+button { background:#27AE60; color:white; border:none; font-weight:bold; cursor:pointer; }
+button.red { background:#E74C3C; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { border:1px solid #ddd; padding:6px; text-align:center; }
+th { background:#FAD7A0; }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+
+
+<div class="header">Project Arun – Admin Panel</div>
+
+
+<!-- Login Box -->
+<div class="card" id="loginBox">
+  <h3>Admin Login</h3>
+  <input type="password" id="pw" placeholder="Enter password">
+  <button onclick="login()">Login</button>
+</div>
+
+
+<!-- Slot Settings -->
+<div class="card hidden" id="settingsBox">
+  <h3>Slot Settings</h3>
+  <label>Date</label><input type="date" id="sDate">
+  <label>Start Time</label><input type="time" id="sTime">
+  <label>Duration (Hrs)</label><input type="number" id="sDuration">
+  <label>Max Tokens</label><input type="number" id="sLimit">
+  <button onclick="save()">Save Settings</button>
+  <button style="background:#E74C3C;margin-top:10px;" onclick="logout()">Logout</button>
+</div>
+
+
+<!-- Registration Data -->
+<div class="card hidden" id="dataBox">
+  <h3>Registrations</h3>
+  <button class="red" onclick="load()">🔄 Refresh</button>
+  <div style="overflow-x:auto;margin-top:10px;">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Mobile</th>
+          <th>Name</th>
+          <th>P</th>
+          <th>District / State</th>
+          <th>Place</th>
+          <th>Status</th>
+          <th>Token</th>
+          <th>Proof</th>
+          <th>Hrs</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+
+<script>
+function login(){
+  google.script.run.withSuccessHandler(ok=>{
+    if(!ok) return alert("Wrong password");
+    loginBox.classList.add('hidden');
+    settingsBox.classList.remove('hidden');
+    dataBox.classList.remove('hidden');
+    load();
+  }).checkAdminLogin(pw.value);
+}
+
+
+function logout(){
+  if(confirm("Logout?")){
+    loginBox.classList.remove('hidden');
+    settingsBox.classList.add('hidden');
+    dataBox.classList.add('hidden');
+    pw.value = "";
+  }
+}
+
+
+function save(){
+  const d={date:sDate.value,time:sTime.value,duration:sDuration.value,limit:sLimit.value};
+  if(!d.date||!d.time||!d.duration||!d.limit) return alert("All fields required");
+  google.script.run.withSuccessHandler(msg=>alert(msg)).saveSlotSettings(d);
+}
+
+
+function load(){
+  google.script.run.withSuccessHandler(data=>{
+    rows.innerHTML="";
+    data.slice(1).forEach(r=>{
+      const tr=document.createElement("tr");
+      r.forEach((c,i)=>{
+        const td=document.createElement("td");
+        td.innerHTML = (i===8 && c)
+          ? `<a href="${c}" target="_blank">View</a>`
+          : (c || "-");
+        tr.appendChild(td);
+      });
+      rows.appendChild(tr);
+    });
+  }).getFullData();
+}
+</script>
+
+
+</body>
+</html>
+
+
