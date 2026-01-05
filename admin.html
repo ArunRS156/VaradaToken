@@ -78,23 +78,10 @@ function login(){
   }).checkAdminLogin(pw.value);
 }
 
-
-function logout(){
-  if(confirm("Logout?")){
-    loginBox.classList.remove('hidden');
-    settingsBox.classList.add('hidden');
-    dataBox.classList.add('hidden');
-    pw.value = "";
-  }
-}
-
-
 function save(){
   const d={date:sDate.value,time:sTime.value,duration:sDuration.value,limit:sLimit.value};
-  if(!d.date||!d.time||!d.duration||!d.limit) return alert("All fields required");
-  google.script.run.withSuccessHandler(msg=>alert(msg)).saveSlotSettings(d);
+  google.script.run.saveSlotSettings(d);
 }
-
 
 function load(){
   google.script.run.withSuccessHandler(data=>{
@@ -103,16 +90,28 @@ function load(){
       const tr=document.createElement("tr");
       r.forEach((c,i)=>{
         const td=document.createElement("td");
-        td.innerHTML = (i===8 && c)
-          ? `<a href="${c}" target="_blank">View</a>`
-          : (c || "-");
+        td.innerHTML = (i===8 && c) ? `<a href="${c}" target="_blank">View</a>` : (c||"-");
         tr.appendChild(td);
       });
       rows.appendChild(tr);
     });
-  }).getFullData();
+  }).getFullData(Date.now()); // 🔑 cache-buster
 }
+
+/* ✅ AUTO-REFRESH */
+let autoRefreshTimer = setInterval(load, 10000);
+
+/* ✅ PAUSE ON SCROLL */
+let scrollTimeout;
+window.addEventListener("scroll",()=>{
+  clearInterval(autoRefreshTimer);
+  clearTimeout(scrollTimeout);
+  scrollTimeout=setTimeout(()=>{
+    autoRefreshTimer=setInterval(load,10000);
+  },2000);
+});
 </script>
+
 
 
 </body>
