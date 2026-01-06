@@ -68,6 +68,9 @@ th { background:#FAD7A0; }
 
 
 <script>
+let autoRefreshTimer = null;
+let isPaused = false;
+
 function login(){
   google.script.run.withSuccessHandler(ok=>{
     if(!ok) return alert("Wrong password");
@@ -75,6 +78,7 @@ function login(){
     settingsBox.classList.remove('hidden');
     dataBox.classList.remove('hidden');
     load();
+    scheduleRefresh(); // ✅ start auto refresh
   }).checkAdminLogin(pw.value);
 }
 
@@ -84,35 +88,43 @@ function save(){
 }
 
 function load(){
+  if(isPaused) return;
+
   google.script.run.withSuccessHandler(data=>{
     rows.innerHTML="";
     data.slice(1).forEach(r=>{
       const tr=document.createElement("tr");
       r.forEach((c,i)=>{
         const td=document.createElement("td");
-        td.innerHTML = (i===8 && c) ? `<a href="${c}" target="_blank">View</a>` : (c||"-");
+        td.innerHTML = (i===8 && c)
+          ? `<a href="${c}" target="_blank">View</a>`
+          : (c || "-");
         tr.appendChild(td);
       });
       rows.appendChild(tr);
     });
-  }).getFullData(Date.now()); // 🔑 cache-buster
+  }).getFullData();
 }
 
-/* ✅ AUTO-REFRESH */
-let autoRefreshTimer = setInterval(load, 10000);
+/* ✅ RELIABLE AUTO REFRESH (NO setInterval) */
+function scheduleRefresh(){
+  clearTimeout(autoRefreshTimer);
+  autoRefreshTimer = setTimeout(()=>{
+    load();
+    scheduleRefresh();
+  }, 10000);
+}
 
 /* ✅ PAUSE ON SCROLL */
-let scrollTimeout;
+let scrollTimer;
 window.addEventListener("scroll",()=>{
-  clearInterval(autoRefreshTimer);
-  clearTimeout(scrollTimeout);
-  scrollTimeout=setTimeout(()=>{
-    autoRefreshTimer=setInterval(load,10000);
-  },2000);
+  isPaused = true;
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(()=>{
+    isPaused = false;
+  }, 2000);
 });
 </script>
-
-
 
 </body>
 </html>

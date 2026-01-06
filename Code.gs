@@ -1,9 +1,9 @@
 const SS_ID = "1hOOM5sQ2zMcCzpoTzxM9D3bPta7HAv3iNWVKTx7zgcE";
 const FOLDER_ID = "1BXNwwRXdbnDVAyf4qc3LwuLL5GRzFGjl";
 
-// =======================
-// Serve pages
-// =======================
+/* =======================
+   Serve pages
+======================= */
 function doGet(e) {
   const isAdmin = e?.parameter?.mode === "admin";
   const html = HtmlService.createTemplateFromFile(isAdmin ? "admin" : "index")
@@ -16,9 +16,16 @@ function doGet(e) {
   return html;
 }
 
-// =======================
-// Slot status (UNCHANGED)
-// =======================
+/* =======================
+   ADMIN CACHE HELPERS
+======================= */
+function clearAdminCache() {
+  CacheService.getScriptCache().remove("ADMIN_DATA");
+}
+
+/* =======================
+   Slot status (UNCHANGED)
+======================= */
 function getLimitStatus() {
   const ss = SpreadsheetApp.openById(SS_ID);
   const limit = Number(ss.getSheetByName("Settings").getRange("D2").getValue());
@@ -28,19 +35,30 @@ function getLimitStatus() {
   return current >= limit ? "FULL" : "OPEN";
 }
 
-// =======================
-// Admin data
-// =======================
+/* =======================
+   Admin data (FIXED)
+======================= */
 function getFullData() {
-  return SpreadsheetApp.openById(SS_ID)
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get("ADMIN_DATA");
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const data = SpreadsheetApp.openById(SS_ID)
     .getSheetByName("Payment")
     .getDataRange()
     .getValues();
+
+  cache.put("ADMIN_DATA", JSON.stringify(data), 30); // 30 sec TTL
+  return data;
 }
 
-// =======================
-// Register user (UNCHANGED LOGIC)
-// =======================
+/* =======================
+   Register user
+   (UNCHANGED LOGIC)
+======================= */
 function verifyAndSubmit(d) {
   const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Payment");
 
@@ -50,8 +68,13 @@ function verifyAndSubmit(d) {
 
   const last = sheet.getLastRow();
   if (last > 1) {
-    const mobiles = sheet.getRange(2, 2, last - 1, 1).getValues().flat().map(String);
-    if (mobiles.includes(String(d.mobile))) return { status: "duplicate" };
+    const mobiles = sheet.getRange(2, 2, last - 1, 1)
+      .getValues()
+      .flat()
+      .map(String);
+    if (mobiles.includes(String(d.mobile))) {
+      return { status: "duplicate" };
+    }
   }
 
   const s = SpreadsheetApp.openById(SS_ID)
@@ -60,7 +83,11 @@ function verifyAndSubmit(d) {
     .getValues()[0];
 
   const count = Math.max(0, last - 1);
-  const dateStr = Utilities.formatDate(new Date(s[0]), "GMT+5:30", "dd/MM/yyyy");
+  const dateStr = Utilities.formatDate(
+    new Date(s[0]),
+    "GMT+5:30",
+    "dd/MM/yyyy"
+  );
 
   let t = new Date();
   if (s[1] instanceof Date) {
@@ -73,24 +100,25 @@ function verifyAndSubmit(d) {
   const token = `${d.name} | ${d.mobile} | ${d.persons}P | ${dateStr} | ${timeStr} | Token ${tokenNo}`;
 
   sheet.appendRow([
-    new Date(),              // A Timestamp
-    d.mobile,                // B Mobile (PRIMARY KEY)
-    d.name,                  // C Name
-    d.persons,               // D Persons
+    new Date(),                       // A Timestamp
+    d.mobile,                         // B Mobile (PRIMARY KEY)
+    d.name,                           // C Name
+    d.persons,                        // D Persons
     d.isNonKA ? d.state : d.district, // E Location
-    d.place,                 // F Place
-    "PENDING_TXN",           // G Status
-    token,                   // H Token
-    "",                      // I Screenshot URL
-    ""                       // J Txn ID
+    d.place,                          // F Place
+    "PENDING_TXN",                    // G Status
+    token,                            // H Token
+    "",                               // I Screenshot
+    ""                                // J Txn ID
   ]);
 
+  clearAdminCache();
   return { status: "success" };
 }
 
-// =======================
-// Save Txn ID (MOBILE BASED)
-// =======================
+/* =======================
+   Save Txn ID (MOBILE BASED)
+======================= */
 function saveTxnId(mobile, txnId) {
   if (!mobile || !txnId) return { status: "error" };
 
@@ -99,54 +127,58 @@ function saveTxnId(mobile, txnId) {
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][1]) === String(mobile)) {
-      sheet.getRange(i + 1, 10).setValue(txnId); // Column J
+      sheet.getRange(i + 1, 10).setValue(txnId); // J
       sheet.getRange(i + 1, 7).setValue("TXN_ENTERED");
+      clearAdminCache();
       return { status: "success", token: data[i][7] };
     }
   }
   return { status: "not_found" };
 }
 
-// =======================
-// Upload screenshot (MOBILE BASED)
-// =======================
+/* =======================
+   Upload screenshot (MOBILE BASED)
+======================= */
 function uploadScreenshot(e) {
   if (!e.base64 || !e.type || !e.mobile) return { status: "error" };
 
-  const file = DriveApp.getFolderById(FOLDER_ID)
-    .createFile(Utilities.newBlob(
+  const file = DriveApp.getFolderById(FOLDER_ID).createFile(
+    Utilities.newBlob(
       Utilities.base64Decode(e.base64),
       e.type,
       "Proof_" + e.mobile
-    ));
+    )
+  );
 
   const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Payment");
   const data = sheet.getDataRange().getValues();
 
   for (let i = 1; i < data.length; i++) {
     if (String(data[i][1]) === String(e.mobile)) {
-      sheet.getRange(i + 1, 9).setValue(file.getUrl()); // Screenshot
+      sheet.getRange(i + 1, 9).setValue(file.getUrl()); // I
       sheet.getRange(i + 1, 7).setValue("PAID_CONFIRMED");
+      clearAdminCache();
       return { status: "success", token: data[i][7] };
     }
   }
-
   return { status: "not_found" };
 }
 
-// =======================
-// Admin login
-// =======================
+/* =======================
+   Admin login
+======================= */
 function checkAdminLogin(pw) {
   return pw === "1234";
 }
 
-// =======================
-// Save slot settings
-// =======================
+/* =======================
+   Save slot settings
+======================= */
 function saveSlotSettings(s) {
   const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Settings");
-  sheet.getRange("A2:D2")
-    .setValues([[new Date(s.date), s.time, s.duration || s.interval, s.limit]]);
+  sheet.getRange("A2:D2").setValues([
+    [new Date(s.date), s.time, s.duration || s.interval, s.limit]
+  ]);
+  clearAdminCache();
   return "Saved";
 }
