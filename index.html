@@ -16,17 +16,14 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
 </head>
 <body>
 
-<!-- Loading -->
 <div id="loading" class="card" style="padding:40px;text-align:center;">
   Checking slots…
 </div>
 
-<!-- Closed -->
 <div id="closed" class="card hidden" style="padding:40px;text-align:center;color:red;">
   ALL SLOTS FULL
 </div>
 
-<!-- Registration Form -->
 <div id="form" class="card hidden">
   <div style="background:#D35400;color:white;padding:15px;text-align:center;">
     Project Arun
@@ -69,7 +66,6 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
   </div>
 </div>
 
-<!-- Payment Check -->
 <div id="payCheck" class="card hidden" style="padding:30px;text-align:center;position:relative;">
   <span onclick="closePayCheck()" style="position:absolute;top:10px;right:15px;cursor:pointer;font-weight:bold;">✖</span>
   <h3>Payment Check</h3>
@@ -78,14 +74,10 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
   <button class="btn" style="background:#E74C3C;" onclick="confirmNo()">No, Try Again</button>
 </div>
 
-<!-- Upload Section -->
 <div id="upScr" class="card hidden" style="padding:20px;text-align:center;">
   <h3>Enter Transaction ID</h3>
   <input id="txnId" placeholder="Transaction ID">
-
-  <button class="btn" style="background:#27AE60;margin-bottom:10px;" onclick="saveTxn()">
-    Save Transaction ID
-  </button>
+  <button class="btn" style="background:#27AE60;margin-bottom:10px;" onclick="saveTxn()">Save Transaction ID</button>
 
   <hr style="margin:15px 0">
 
@@ -94,7 +86,6 @@ input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; b
   <button class="btn" style="background:#27AE60;" onclick="upload()">Submit Proof</button>
 </div>
 
-<!-- Token Screen -->
 <div id="tokenScr" class="card hidden" style="padding:30px;text-align:center;">
   <h3 style="color:green;">Your Token</h3>
   <div id="tDisp" style="border:2px dashed #D35400;padding:15px;font-weight:bold;"></div>
@@ -120,7 +111,6 @@ const tDisp = document.getElementById("tDisp");
 
 let pCount = "", paymentPending = false;
 
-/* On load */
 window.onload = () => {
   google.script.run.withSuccessHandler(s => {
     loading.classList.add("hidden");
@@ -185,18 +175,11 @@ function submit(){
   });
 }
 
-/* 🔧 FIXED: Txn ID is saved AGAINST MOBILE */
 function saveTxn(){
   if(!txnId.value.trim()) return alert("Transaction ID required");
-
-  google.script.run.withSuccessHandler(res=>{
-    if(res.status!=="success"){
-      alert("Failed to save Txn ID");
-    }
-  }).saveTxnId(mobile.value.trim(), txnId.value.trim());
+  google.script.run.saveTxnId(mobile.value.trim(), txnId.value.trim());
 }
 
-/* 🔧 FIXED: Screenshot upload checks Txn ID for same mobile */
 function upload(){
   const f = file.files[0];
   if(!f) return alert("Select screenshot");
@@ -204,10 +187,7 @@ function upload(){
   const r = new FileReader();
   r.onload = e => {
     google.script.run.withSuccessHandler(res=>{
-      if(res.status==="txn_missing"){
-        alert("Enter Transaction ID first");
-        return;
-      }
+      if(res.status==="txn_missing") return alert("Enter Transaction ID first");
       if(res.status==="success"){
         tDisp.innerText = res.token;
         upScr.classList.add("hidden");
@@ -222,6 +202,5 @@ function upload(){
   r.readAsDataURL(f);
 }
 </script>
-
 </body>
 </html>
