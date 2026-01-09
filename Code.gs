@@ -25,7 +25,7 @@ function clearAdminCache() {
 }
 
 /* =======================
-   Slot status (SAFE)
+   Slot status (READ ONLY)
 ======================= */
 function getLimitStatus() {
   try {
@@ -41,12 +41,12 @@ function getLimitStatus() {
     const current = Math.max(0, payment.getLastRow() - 1);
     return current >= limit ? "FULL" : "OPEN";
   } catch (e) {
-    return "OPEN"; // never freeze UI
+    return "OPEN";
   }
 }
 
 /* =======================
-   Admin data (FIXED)
+   Admin data (READ ONLY)
 ======================= */
 function getFullData() {
   try {
@@ -54,30 +54,28 @@ function getFullData() {
     const cached = cache.get("ADMIN_DATA");
     if (cached) return JSON.parse(cached);
 
-    const ss = SpreadsheetApp.openById(SS_ID);
-    const sheet = ss.getSheetByName("Payment");
+    const sheet = SpreadsheetApp
+      .openById(SS_ID)
+      .getSheetByName("Payment");
 
-    if (!sheet) {
-      return [[
-        "Time","Mobile","Name","P",
-        "Location","Place","Status",
-        "Token","Proof","Txn"
-      ]];
-    }
+    const data = sheet
+      ? sheet.getDataRange().getValues()
+      : [["No Data"]];
 
-    const data = sheet.getDataRange().getValues();
     cache.put("ADMIN_DATA", JSON.stringify(data), 30);
     return data;
-
-  } catch (err) {
-    return [["ERROR", err.message]];
+  } catch (e) {
+    return [["ERROR", e.message]];
   }
 }
 
 /* =======================
-   User registration
+   Register user (LOCKED)
 ======================= */
 function verifyAndSubmit(d) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000); // ⏳ wait up to 10 sec
+
   try {
     const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Payment");
     if (!sheet) return { status: "error" };
@@ -87,6 +85,8 @@ function verifyAndSubmit(d) {
     }
 
     const last = sheet.getLastRow();
+
+    // 🔐 duplicate protection
     if (last > 1) {
       const mobiles = sheet
         .getRange(2, 2, last - 1, 1)
@@ -99,12 +99,14 @@ function verifyAndSubmit(d) {
       }
     }
 
-    const settings = SpreadsheetApp.openById(SS_ID)
+    const settings = SpreadsheetApp
+      .openById(SS_ID)
       .getSheetByName("Settings")
       .getRange("A2:D2")
       .getValues()[0];
 
     const count = Math.max(0, last - 1);
+
     const dateStr = Utilities.formatDate(
       new Date(settings[0]),
       "GMT+5:30",
@@ -130,7 +132,7 @@ function verifyAndSubmit(d) {
 
     sheet.appendRow([
       new Date(),                         // A Time
-      d.mobile,                           // B Mobile
+      d.mobile,                           // B Mobile (PRIMARY KEY)
       d.name,                             // C Name
       d.persons,                          // D Persons
       d.isNonKA ? d.state : d.district,   // E Location
@@ -144,50 +146,53 @@ function verifyAndSubmit(d) {
     clearAdminCache();
     return { status: "success" };
 
-  } catch (e) {
-    return { status: "error" };
+  } finally {
+    lock.releaseLock(); // 🔓 ALWAYS release
   }
 }
 
 /* =======================
-   Save Transaction ID
+   Save Txn ID (LOCKED)
 ======================= */
 function saveTxnId(mobile, txnId) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
   try {
     if (!mobile || !txnId) return { status: "error" };
 
     const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Payment");
-    if (!sheet) return { status: "error" };
-
     const data = sheet.getDataRange().getValues();
 
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][1]) === String(mobile)) {
-        sheet.getRange(i + 1, 10).setValue(txnId); // J
+        sheet.getRange(i + 1, 10).setValue(txnId);   // J
         sheet.getRange(i + 1, 7).setValue("TXN_ENTERED");
         clearAdminCache();
         return { status: "success", token: data[i][7] };
       }
     }
+
     return { status: "not_found" };
 
-  } catch (e) {
-    return { status: "error" };
+  } finally {
+    lock.releaseLock();
   }
 }
 
 /* =======================
-   Upload Screenshot
+   Upload Screenshot (LOCKED)
 ======================= */
 function uploadScreenshot(e) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
   try {
     if (!e.base64 || !e.type || !e.mobile) {
       return { status: "error" };
     }
 
     const sheet = SpreadsheetApp.openById(SS_ID).getSheetByName("Payment");
-    if (!sheet) return { status: "error" };
-
     const data = sheet.getDataRange().getValues();
 
     for (let i = 1; i < data.length; i++) {
@@ -197,25 +202,28 @@ function uploadScreenshot(e) {
           return { status: "txn_missing" };
         }
 
-        const file = DriveApp.getFolderById(FOLDER_ID).createFile(
-          Utilities.newBlob(
-            Utilities.base64Decode(e.base64),
-            e.type,
-            "Proof_" + e.mobile
-          )
-        );
+        const file = DriveApp
+          .getFolderById(FOLDER_ID)
+          .createFile(
+            Utilities.newBlob(
+              Utilities.base64Decode(e.base64),
+              e.type,
+              "Proof_" + e.mobile
+            )
+          );
 
         sheet.getRange(i + 1, 9).setValue(file.getUrl()); // I
         sheet.getRange(i + 1, 7).setValue("PAID_CONFIRMED");
-        clearAdminCache();
 
+        clearAdminCache();
         return { status: "success", token: data[i][7] };
       }
     }
+
     return { status: "not_found" };
 
-  } catch (e) {
-    return { status: "error" };
+  } finally {
+    lock.releaseLock();
   }
 }
 
@@ -227,9 +235,12 @@ function checkAdminLogin(pw) {
 }
 
 /* =======================
-   Save slot settings
+   Save slot settings (LOCKED)
 ======================= */
 function saveSlotSettings(s) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
   try {
     SpreadsheetApp
       .openById(SS_ID)
@@ -239,7 +250,8 @@ function saveSlotSettings(s) {
 
     clearAdminCache();
     return "Saved";
-  } catch (e) {
-    return "Error";
+
+  } finally {
+    lock.releaseLock();
   }
 }

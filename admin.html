@@ -19,18 +19,7 @@ th { background:#FAD7A0; }
 
 
 
-
-
-
-
-
 <div class="header">Project Arun – Admin Panel</div>
-
-
-
-
-
-
 
 
 <!-- Login Box -->
@@ -39,13 +28,6 @@ th { background:#FAD7A0; }
   <input type="password" id="pw" placeholder="Enter password">
   <button onclick="login()">Login</button>
 </div>
-
-
-
-
-
-
-
 
 <!-- Slot Settings -->
 <div class="card hidden" id="settingsBox">
@@ -57,12 +39,6 @@ th { background:#FAD7A0; }
   <button onclick="save()">Save Settings</button>
   <button style="background:#E74C3C;margin-top:10px;" onclick="logout()">Logout</button>
 </div>
-
-
-
-
-
-
 
 
 <!-- Registration Data -->
@@ -91,17 +67,9 @@ th { background:#FAD7A0; }
 </div>
 
 
-
-
-
-
-
-
 <script>
 let autoRefreshTimer = null;
 let isPaused = false;
-
-
 
 
 function login(){
@@ -122,7 +90,6 @@ function save(){
   const d={date:sDate.value,time:sTime.value,duration:sDuration.value,limit:sLimit.value};
   google.script.run.saveSlotSettings(d);
 }
-
 
 
 
@@ -149,8 +116,6 @@ function load(){
 }
 
 
-
-
 /* ✅ RELIABLE AUTO REFRESH (NO setInterval) */
 function scheduleRefresh(){
   clearTimeout(autoRefreshTimer);
@@ -159,9 +124,6 @@ function scheduleRefresh(){
     scheduleRefresh();
   }, 10000);
 }
-
-
-
 
 /* ✅ PAUSE ON SCROLL */
 let scrollTimer;
@@ -173,19 +135,7 @@ window.addEventListener("scroll",()=>{
   }, 2000);
 });
 </script>
-
-
-
-
 </body>
 </html>
-
-
-
-
-
-
-
-
 
 
