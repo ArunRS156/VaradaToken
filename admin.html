@@ -3,175 +3,51 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#F4F6F7;
-  margin:0;
-}
-.header {
-  background:#D35400;
-  color:white;
-  padding:15px;
-  text-align:center;
-  font-size:20px;
-}
-.card {
-  background:white;
-  margin:15px;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,.1);
-}
-input, button {
-  width:100%;
-  padding:10px;
-  margin-top:8px;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-button {
-  background:#27AE60;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-  border:none;
-}
-button.red {
-  background:#E74C3C;
-}
-table {
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-}
-th, td {
-  border:1px solid #ddd;
-  padding:6px;
-  text-align:center;
-}
-th {
-  background:#FAD7A0;
-}
-.hidden {
-  display:none;
-}
-a {
-  color:#2980B9;
-  text-decoration:none;
-  font-weight:bold;
-}
+  body { font-family:sans-serif; background:#F4F6F7; margin:0; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+  .top-pane { flex-shrink:0; background:white; z-index:1000; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+  .header { background:#D35400; color:white; padding:12px; text-align:center; font-weight:bold; position:relative; }
+  .logout { position:absolute; right:10px; top:8px; background:#c0392b; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:10px; cursor:pointer;}
+  .settings-row { display:flex; align-items:center; padding:10px 15px; border-bottom:2px solid #E67E22; font-size:12px; gap:15px; overflow-x:auto; }
+  .sync-bar { padding:8px 15px; font-size:10px; color:#666; display:flex; justify-content:space-between; background:#f9f9f9; border-bottom:1px solid #ddd; align-items:center; }
+  .table-area { flex-grow:1; overflow:auto; background:white; }
+  table { width:100%; border-collapse:collapse; font-size:10px; min-width:1000px; table-layout:fixed; }
+  th, td { border:1px solid #eee; padding:10px 4px; text-align:center; word-wrap:break-word; vertical-align:middle; white-space: pre-line; }
+  thead th { position:sticky; top:0; background:#FAD7A0; z-index:10; }
+  .c-tk { width:95px; font-weight: bold; } .c-ts { width:110px; } .c-mb { width:90px; } .c-p { width:35px; } .c-st { width:80px; }
+  .hidden { display:none; }
+  #searchBox { border: 1px solid #ccc; padding: 4px 8px; border-radius: 4px; font-size: 11px; width: 180px; }
 </style>
 </head>
-
 <body>
-
-<div class="header">Project Arun – Admin Panel</div>
-
-<!-- LOGIN -->
-<div class="card" id="loginBox">
-  <h3>Admin Login</h3>
-  <input type="password" id="pw" placeholder="Enter password">
-  <button onclick="login()">Login</button>
+<div id="loginScr" style="max-width:300px; margin: 100px auto; padding: 25px; background:white; text-align:center; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+  <h3 style="color:#D35400;">Project Arun Admin</h3>
+  <input type="password" id="mpw" style="width:100%; padding:10px; margin-bottom:15px;" placeholder="Master Password">
+  <button onclick="masterLogin()" style="width:100%; background:#D35400; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">Login</button>
 </div>
-
-<!-- SETTINGS -->
-<div class="card hidden" id="settingsBox">
-  <h3>Slot Settings</h3>
-
-  <label>Date</label>
-  <input type="date" id="sDate">
-
-  <label>Start Time</label>
-  <input type="time" id="sTime">
-
-  <label>Duration</label>
-  <input type="number" id="sDuration">
-
-  <label>Max Tokens</label>
-  <input type="number" id="sLimit">
-
-  <button onclick="saveSettings()">Save Settings</button>
-  <button class="red" onclick="logout()">Logout</button>
-</div>
-
-<!-- DATA -->
-<div class="card hidden" id="dataBox">
-  <h3>Registrations</h3>
-  <button class="red" onclick="loadData()">🔄 Refresh</button>
-
-  <div style="overflow-x:auto;margin-top:10px;">
-    <table>
-      <thead>
-        <tr>
-          <th>Token</th>
-          <th>Timestamp</th>
-          <th>Mobile</th>
-          <th>Name</th>
-          <th>Persons</th>
-          <th>District / State</th>
-          <th>Place</th>
-          <th>Payment Status</th>
-          <th>Txn ID</th>
-          <th>Screenshot URL</th>
-        </tr>
-      </thead>
-      <tbody id="rows"></tbody>
-    </table>
+<div id="mainApp" class="hidden" style="flex-direction:column; height:100%;">
+  <div class="top-pane">
+    <div class="header">Project Arun Admin <button class="logout" onclick="location.reload()">Logout</button></div>
+    <div id="settingsView" class="settings-row">
+      <div>Date: <b id="vDate">-</b></div><div>Time: <b id="vTime">-</b></div><div>Gap: <b id="vGap">-</b></div><div>Limit: <b id="vLimit">-</b></div>
+      <button onclick="unlockSettings()" style="margin-left:auto; cursor:pointer;">🔓 Edit</button>
+    </div>
+    <div id="settingsEdit" class="settings-row hidden" style="background:#FFF5EC;">
+      <input type="date" id="iDate"><input type="time" id="iTime"><input type="number" id="iGap" style="width:40px;"><input type="number" id="iLimit" style="width:40px;">
+      <button onclick="saveSettings()" style="background:#27AE60; color:white; border:none; padding:5px 10px; border-radius:4px;">Save</button>
+      <button onclick="lockSettings()">Back</button>
+    </div>
+    <div class="sync-bar"><span id="sync">Ready</span><div style="display:flex; gap:10px; align-items:center;"><input type="text" id="searchBox" onkeyup="doSearch()" placeholder="🔍 Search..."><button onclick="loadData()" style="border:none; color:#2980B9; font-weight:bold; cursor:pointer;">🔄 Refresh</button></div></div>
   </div>
+  <div class="table-area"><table><thead><tr><th class="c-tk">Token</th><th class="c-ts">Timestamp</th><th class="c-mb">Mobile</th><th>Name</th><th class="c-p">P</th><th>Loc</th><th>Place</th><th class="c-st">Status</th><th>Txn</th><th class="c-p">Proof</th></tr></thead><tbody id="rows"></tbody></table></div>
 </div>
-
 <script>
-function login() {
-  google.script.run.withSuccessHandler(ok => {
-    if (!ok) return alert("Wrong password");
-
-    loginBox.classList.add("hidden");
-    settingsBox.classList.remove("hidden");
-    dataBox.classList.remove("hidden");
-    loadData();
-  }).checkAdminLogin(pw.value);
-}
-
-function logout() {
-  location.reload();
-}
-
-function saveSettings() {
-  const data = {
-    date: sDate.value,
-    time: sTime.value,
-    duration: sDuration.value,
-    limit: sLimit.value
-  };
-  google.script.run.saveSlotSettings(data);
-  alert("Settings Saved");
-}
-
-function loadData() {
-  google.script.run.withSuccessHandler(data => {
-    rows.innerHTML = "";
-
-    data.slice(1).forEach(r => {
-      const tr = document.createElement("tr");
-
-      r.forEach((cell, i) => {
-        const td = document.createElement("td");
-
-        // Screenshot link
-        if (i === 9 && cell) {
-          td.innerHTML = `<a href="${cell}" target="_blank">View</a>`;
-        } else {
-          td.textContent = cell || "-";
-        }
-
-        tr.appendChild(td);
-      });
-
-      rows.appendChild(tr);
-    });
-  }).getFullData();
-}
+function masterLogin() { google.script.run.withSuccessHandler(ok=>{ if(!ok) return alert("Wrong PW"); document.getElementById("loginScr").classList.add("hidden"); document.getElementById("mainApp").style.display="flex"; fetchSettings(); loadData(); setInterval(loadData, 8000); }).checkMaster(document.getElementById("mpw").value); }
+function fetchSettings() { google.script.run.withSuccessHandler(s=>{ document.getElementById("vDate").innerText=s.date; document.getElementById("vTime").innerText=s.time; document.getElementById("vGap").innerText=s.duration+"m"; document.getElementById("vLimit").innerText=s.limit; document.getElementById("iDate").value=s.date; document.getElementById("iTime").value=s.time; document.getElementById("iGap").value=s.duration; document.getElementById("iLimit").value=s.limit; }).getSettingsData(); }
+function unlockSettings() { const pw=prompt("Settings PW:"); google.script.run.withSuccessHandler(ok=>{ if(!ok) return alert("Denied"); document.getElementById("settingsView").classList.add("hidden"); document.getElementById("settingsEdit").classList.remove("hidden"); }).checkSettingsPw(pw); }
+function lockSettings() { document.getElementById("settingsEdit").classList.add("hidden"); document.getElementById("settingsView").classList.remove("hidden"); }
+function saveSettings() { const d={ date:document.getElementById("iDate").value, time:document.getElementById("iTime").value, duration:document.getElementById("iGap").value, limit:document.getElementById("iLimit").value }; google.script.run.withSuccessHandler(()=>{ fetchSettings(); lockSettings(); }).saveSlotSettings(d); }
+function loadData() { document.getElementById("sync").innerText="☁ Syncing..."; google.script.run.withSuccessHandler(data=>{ const tbody=document.getElementById("rows"); tbody.innerHTML=""; if(!data) return; data.slice(1).reverse().forEach(r=>{ const tr=document.createElement("tr"); r.forEach((c,i)=>{ const td=document.createElement("td"); if(i===9 && c && c !== "-") td.innerHTML=`<a href="${c}" target="_blank" style="text-decoration:none;font-size:16px;">👁️</a>`; else td.textContent= (c instanceof Date) ? c.toLocaleString() : (c || "-"); tr.appendChild(td); }); tbody.appendChild(tr); }); document.getElementById("sync").innerText="⚡ Live: "+new Date().toLocaleTimeString(); doSearch(); }).getFullData(); }
+function doSearch() { const input = document.getElementById("searchBox").value.toUpperCase(); const rows = document.getElementById("rows").getElementsByTagName("tr"); for (let i = 0; i < rows.length; i++) { const text = rows[i].textContent || rows[i].innerText; rows[i].style.display = (text.toUpperCase().indexOf(input) > -1) ? "" : "none"; } }
 </script>
-
 </body>
 </html>

@@ -2,204 +2,116 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <style>
-body { font-family:sans-serif; background:#FFF5EC; padding:10px; }
-.card { background:#fff; border-radius:12px; max-width:400px; margin:auto;
-       border-top:6px solid #E67E22; box-shadow:0 4px 10px rgba(0,0,0,.1); }
-input, select { width:100%; padding:12px; margin:8px 0; border:1px solid #ccc; border-radius:6px; }
-.p-box { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; }
-.p-btn { padding:10px; border:1px solid #ddd; border-radius:6px; background:#fff; }
-.p-btn.active { background:#D35400; color:#fff; }
-.btn { width:100%; padding:15px; border:none; border-radius:6px; font-weight:bold; color:#fff; }
-.hidden { display:none; }
+  :root { --deep-orange: #D35400; --gold: #D4AF37; --bg: #FFF8F0; }
+  body { font-family: sans-serif; background: var(--bg); padding: 10px; margin: 0; }
+  .card { background: #fff; border-radius: 15px; max-width: 400px; margin: auto; border: 2px solid var(--gold); border-top: 8px solid var(--deep-orange); box-shadow: 0 8px 20px rgba(0,0,0,0.15); overflow: hidden; }
+  .banner-img { width: 100%; height: auto; border-bottom: 3px solid var(--gold); }
+  .divine-header { background: var(--deep-orange); color: white; padding: 12px; text-align: center; font-weight: bold; }
+  label { font-size: 11px; font-weight: bold; color: var(--deep-orange); display: block; margin-top: 10px; }
+  input, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+  .p-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .p-btn { padding: 12px; border: 1px solid var(--gold); border-radius: 8px; background: #fff; cursor: pointer; color: var(--deep-orange); font-weight: bold; }
+  .p-btn.active { background: var(--deep-orange); color: #fff; }
+  .btn { width: 100%; padding: 16px; border: none; border-radius: 8px; font-weight: bold; color: #fff; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+  .btn-pay { background: linear-gradient(135deg, #27AE60, #2ECC71); }
+  .hidden { display:none; }
+  .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--deep-orange); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+<div id="loading" class="card" style="padding:50px; text-align:center;"><p>Connecting...</p><div class="loader"></div></div>
 
-<div id="loading" class="card" style="padding:40px;text-align:center;">
-  Checking slots…
-</div>
-
-<div id="closed" class="card hidden" style="padding:40px;text-align:center;color:red;">
-  ALL SLOTS FULL
-</div>
 
 <div id="form" class="card hidden">
-  <div style="background:#D35400;color:white;padding:15px;text-align:center;">
-    Project Arun
-  </div>
+  <img id="driveImg" class="banner-img" src=""><div class="divine-header">ಕಂಚಿ ವರದರಾಜ ಸ್ವಾಮಿ</div>
   <div style="padding:20px;">
-    <label>Name</label><input id="name">
-
-    <label>Persons</label>
-    <div class="p-box">
-      <button class="p-btn" onclick="setP('1',this)">1</button>
-      <button class="p-btn" onclick="setP('2',this)">2</button>
-      <button class="p-btn" onclick="setP('3',this)">3</button>
-      <button class="p-btn" onclick="setP('4',this)">4</button>
-      <button class="p-btn" onclick="setP('5',this)">5</button>
-      <button class="p-btn" onclick="setP('5+',this)">5+</button>
-    </div>
-
-    <input type="checkbox" id="nonKA" onchange="toggleLoc()"> Outside Karnataka?
-
-    <div id="ka">
-      <select id="dist">
-        <option>Bengaluru</option>
-        <option>Mysuru</option>
-      </select>
-    </div>
-
-    <div id="nka" class="hidden">
-      <select id="state">
-        <option>Tamil Nadu</option>
-        <option>Kerala</option>
-      </select>
-    </div>
-
-    <label>Place</label><input id="place">
-    <label>Mobile</label><input id="mobile" maxlength="10">
-
-    <a class="btn" style="background:#27AE60;text-decoration:none;text-align:center;"
-       href="upi://pay?pa=ajvinay991@mvhdfc&pn=Arun&am=0.01"
-       onclick="pay()">Pay ₹1 & Register</a>
+    <label>Name</label><input id="name" oninput="this.value=this.value.replace(/[^a-zA-Z ]/g,'')">
+    <label>Persons</label><div class="p-box"><button class="p-btn" onclick="setP('1',this)">1</button><button class="p-btn" onclick="setP('2',this)">2</button><button class="p-btn" onclick="setP('3',this)">3</button><button class="p-btn" onclick="setP('4',this)">4</button><button class="p-btn" onclick="setP('5',this)">5</button><button class="p-btn" onclick="setP('5+',this)">5+</button></div>
+    <div style="margin:10px 0;"><input type="checkbox" id="nonKA" onchange="toggleLoc()"> <label style="display:inline;">Outside Karnataka?</label></div>
+    <div id="ka"><label>District</label><select id="dist"><option>Bengaluru Urban</option><option>Mysuru</option><option>Other</option></select></div>
+    <div id="nka" class="hidden"><label>State</label><select id="state"><option>Tamil Nadu</option><option>Andhra Pradesh</option></select></div>
+    <label>Village/City</label><input id="place">
+    <label>WhatsApp Number</label><input id="mobile" maxlength="10" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    <button class="btn btn-pay" onclick="pay()">Register & Pay ₹1</button>
   </div>
 </div>
 
-<div id="payCheck" class="card hidden" style="padding:30px;text-align:center;position:relative;">
-  <span onclick="closePayCheck()" style="position:absolute;top:10px;right:15px;cursor:pointer;font-weight:bold;">✖</span>
+
+<div id="payCheck" style="position:fixed; bottom:0; width:100%; background:white; padding:20px; border-radius:20px 20px 0 0; box-shadow:0 -5px 20px rgba(0,0,0,0.3); z-index:999; text-align:center;" class="hidden">
+  <button onclick="document.getElementById('payCheck').classList.add('hidden')" style="position:absolute; right:15px; top:10px; background:none; border:none; font-size:20px; cursor:pointer;">✕</button>
   <h3>Payment Check</h3>
-  <p>Was your payment successful?</p>
-  <button class="btn" style="background:#27AE60;margin-bottom:10px;" onclick="confirmYes()">Yes, Proceed</button>
-  <button class="btn" style="background:#E74C3C;" onclick="confirmNo()">No, Try Again</button>
+  <p style="font-size:14px;">Was your payment of ₹1 successful?</p>
+  <div style="display:flex; flex-direction:column; gap:10px;">
+    <button class="btn" style="background:#27AE60; margin:0;" onclick="confirmYes()">Yes, Proceed</button>
+    <button class="btn" style="background:#E74C3C; margin:0;" onclick="pay()">No, Try Again</button>
+  </div>
 </div>
 
-<div id="upScr" class="card hidden" style="padding:20px;text-align:center;">
-  <h3>Enter Transaction ID</h3>
-  <input id="txnId" placeholder="Transaction ID">
-  <button class="btn" style="background:#27AE60;margin-bottom:10px;" onclick="saveTxn()">Save Transaction ID</button>
 
-  <hr style="margin:15px 0">
+<div id="txnScr" class="card hidden" style="padding:25px; text-align:center;"><h3>Enter UPI Txn ID</h3><input id="txnId" maxlength="12" placeholder="12 Digit ID"><button class="btn" style="background:var(--deep-orange);" onclick="saveTxn()">Next</button></div>
+<div id="upScr" class="card hidden" style="padding:25px; text-align:center;"><h3>Upload Proof</h3><input type="file" id="file" accept="image/*"><button class="btn" style="background:var(--deep-orange);" onclick="upload()">Generate Final Token</button></div>
 
-  <h3>Upload Screenshot</h3>
-  <input type="file" id="file" accept="image/*">
-  <button class="btn" style="background:#27AE60;" onclick="upload()">Submit Proof</button>
+
+<div id="tokenScr" class="card hidden" style="padding:15px; text-align:center;">
+  <div id="tokenArea" style="padding:15px; border:3px solid var(--gold); background:white;">
+    <img id="finalImg" src="" style="width:100%;"><div id="tDisp" style="font-weight:bold; color:var(--deep-orange); margin-top:15px; white-space: pre-line; border:2px dashed var(--gold); padding:10px;"></div>
+  </div>
+  <button class="btn" style="background: linear-gradient(135deg, #2980B9, #25D366);" onclick="downloadAndShare()">📥 Download & Share to WhatsApp</button>
 </div>
 
-<div id="tokenScr" class="card hidden" style="padding:30px;text-align:center;">
-  <h3 style="color:green;">Your Token</h3>
-  <div id="tDisp" style="border:2px dashed #D35400;padding:15px;font-weight:bold;"></div>
-</div>
 
 <script>
-const loading = document.getElementById("loading");
-const closed  = document.getElementById("closed");
-const form    = document.getElementById("form");
-const payCheck = document.getElementById("payCheck");
-const upScr    = document.getElementById("upScr");
-const tokenScr = document.getElementById("tokenScr");
-
-const name = document.getElementById("name");
-const mobile = document.getElementById("mobile");
-const place = document.getElementById("place");
-const dist = document.getElementById("dist");
-const state = document.getElementById("state");
-const nonKA = document.getElementById("nonKA");
-const file = document.getElementById("file");
-const txnId = document.getElementById("txnId");
-const tDisp = document.getElementById("tDisp");
-
-let pCount = "", paymentPending = false;
-
-window.onload = () => {
-  google.script.run.withSuccessHandler(s => {
-    loading.classList.add("hidden");
-    s === "FULL" ? closed.classList.remove("hidden") : form.classList.remove("hidden");
-  }).getLimitStatus();
-};
-
-function setP(v,b){
-  pCount=v;
-  document.querySelectorAll('.p-btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');
-}
-
-function toggleLoc(){
-  nonKA.checked
-    ? (ka.classList.add('hidden'), nka.classList.remove('hidden'))
-    : (ka.classList.remove('hidden'), nka.classList.add('hidden'));
-}
-
-function validate(){
-  if(!name.value || !pCount || !place.value) return alert("All fields required"), false;
-  if(!/^[6-9]\d{9}$/.test(mobile.value)) return alert("Invalid mobile"), false;
-  return true;
-}
-
+let pCount="";
+window.onload=()=>{ checkSlots(); google.script.run.withSuccessHandler(url=>{document.getElementById("driveImg").src=url;document.getElementById("finalImg").src=url;}).getDivineImage(); };
+function checkSlots(){ google.script.run.withSuccessHandler(res=>{document.getElementById("loading").classList.add("hidden"); if(res.status==="FULL")alert("Slots Full"); else document.getElementById("form").classList.remove("hidden"); }).getLimitStatus(); }
+function setP(v,b){ pCount=v; document.querySelectorAll('.p-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); }
+function toggleLoc(){ const is=document.getElementById("nonKA").checked; document.getElementById("ka").classList.toggle('hidden',is); document.getElementById("nka").classList.toggle('hidden',!is); }
 function pay(){
-  if(!validate()) return;
-  form.classList.add("hidden");
-  payCheck.classList.remove("hidden");
-  paymentPending = true;
+  if(!pCount || !document.getElementById("mobile").value) return alert("Fill all");
+  document.getElementById("payCheck").classList.add("hidden");
+  window.location.href="upi://pay?pa=ajvinay991@mvhdfc&pn=Arun&am=1";
+  setTimeout(()=>{document.getElementById("payCheck").classList.remove("hidden");},3000);
 }
-
-function closePayCheck(){
-  payCheck.classList.add("hidden");
-  form.classList.remove("hidden");
-  paymentPending=false;
-}
-
-function confirmNo(){
-  window.location.href = "upi://pay?pa=ajvinay991@mvhdfc&pn=Arun&am=0.01";
-}
-
 function confirmYes(){
-  payCheck.classList.add("hidden");
-  paymentPending=false;
-  submit();
+  document.getElementById("payCheck").classList.add("hidden");
+  document.getElementById("form").classList.add("hidden");
+  document.getElementById("loading").classList.remove("hidden");
+  google.script.run.withSuccessHandler(res=>{
+    document.getElementById("loading").classList.add("hidden");
+    if(res.status==="RESUME" && res.userStatus==="PAID") showToken(res.token);
+    else document.getElementById("txnScr").classList.remove("hidden");
+  }).verifyAndSubmit({name:document.getElementById("name").value, mobile:document.getElementById("mobile").value, persons:pCount, isNonKA:document.getElementById("nonKA").checked, district:document.getElementById("dist").value, state:document.getElementById("state").value, place:document.getElementById("place").value});
 }
-
-window.addEventListener("focus",()=>{ if(paymentPending) payCheck.classList.remove("hidden"); });
-
-function submit(){
-  google.script.run.withSuccessHandler(()=>{
-    upScr.classList.remove("hidden");
-  }).verifyAndSubmit({
-    name: name.value.trim(),
-    mobile: mobile.value.trim(),
-    persons: pCount,
-    isNonKA: nonKA.checked,
-    district: dist.value,
-    state: state.value,
-    place: place.value.trim()
-  });
-}
-
 function saveTxn(){
-  if(!txnId.value.trim()) return alert("Transaction ID required");
-  google.script.run.saveTxnId(mobile.value.trim(), txnId.value.trim());
+  const tid = document.getElementById("txnId").value;
+  if(!tid) return alert("Enter Txn ID");
+  document.getElementById("txnScr").classList.add("hidden");
+  document.getElementById("loading").classList.remove("hidden");
+  google.script.run.withSuccessHandler(res=>{
+    document.getElementById("loading").classList.add("hidden");
+    document.getElementById("tDisp").innerText = res.token;
+    document.getElementById("tokenScr").classList.remove("hidden");
+    setTimeout(()=>{ document.getElementById("tokenScr").classList.add("hidden"); document.getElementById("upScr").classList.remove("hidden"); }, 2000);
+  }).saveTxnId(document.getElementById("mobile").value, tid);
 }
-
 function upload(){
-  const f = file.files[0];
-  if(!f) return alert("Select screenshot");
-
-  const r = new FileReader();
-  r.onload = e => {
-    google.script.run.withSuccessHandler(res=>{
-      if(res.status==="txn_missing") return alert("Enter Transaction ID first");
-      if(res.status==="success"){
-        tDisp.innerText = res.token;
-        upScr.classList.add("hidden");
-        tokenScr.classList.remove("hidden");
-      }
-    }).uploadScreenshot({
-      base64: e.target.result.split(',')[1],
-      type: f.type,
-      mobile: mobile.value.trim()
-    });
-  };
+  const f=document.getElementById("file").files[0]; if(!f) return alert("Select File");
+  document.getElementById("upScr").classList.add("hidden"); document.getElementById("loading").classList.remove("hidden");
+  const r=new FileReader();
+  r.onload=e=>{ google.script.run.withSuccessHandler(res=>showToken(res.token)).uploadScreenshot({base64:e.target.result.split(',')[1], type:f.type, mobile:document.getElementById("mobile").value}); };
   r.readAsDataURL(f);
+}
+function showToken(t){ document.getElementById("tDisp").innerText=t; document.getElementById("loading").classList.add("hidden"); document.getElementById("tokenScr").classList.remove("hidden"); confetti(); }
+function downloadAndShare() {
+  html2canvas(document.getElementById("tokenArea")).then(c=>{
+    const a=document.createElement('a'); a.download='Token.png'; a.href=c.toDataURL(); a.click();
+    const msg = encodeURIComponent("*🚩 Project Arun Token 🚩*\n\n"+document.getElementById("tDisp").innerText);
+    window.open("https://wa.me/91"+document.getElementById("mobile").value+"?text="+msg);
+  });
 }
 </script>
 </body>
